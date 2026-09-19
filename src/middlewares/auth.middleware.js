@@ -1,0 +1,54 @@
+import jwt from "jsonwebtoken";
+
+import User from "../model/User.js";
+
+const authMiddleware = async (req, res, next) => {
+  try {
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Please login first!",
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials!",
+      });
+    }
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Account not found!!",
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired. Please log in again!",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again!",
+    });
+  }
+};
+
+export default authMiddleware;
