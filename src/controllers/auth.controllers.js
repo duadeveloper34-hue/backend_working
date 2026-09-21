@@ -72,7 +72,7 @@ export const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       return res.status(401).json({
@@ -90,15 +90,17 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = await tokenGenerator({ id: user._id });
+    const token = await tokenGenerator({
+      id: user._id,
+    });
 
-    const isProduction = process.env.NODE_ENV === "development";
+    const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
-      maxAge: 3600000,
+      maxAge: 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -111,7 +113,8 @@ export const login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.log(`Login error! ${err}`);
+    console.error("Login error:", err);
+
     return res.status(500).json({
       success: false,
       message: "Something went wrong. Please try again!",
