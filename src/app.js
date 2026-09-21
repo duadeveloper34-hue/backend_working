@@ -7,11 +7,26 @@ import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || "";
+
+const allowedOrigins = allowedOriginsEnv
+  .split(",")
+  .map((origin) => origin.trim());
+
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS policy"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   }),
 );
 app.use(express.json());
